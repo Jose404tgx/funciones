@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Detalle de Ventas</title> <link rel="stylesheet" href="ventas.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #ccc;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+  </style>
+</head>
+<body><nav class="menu">
+  <ul>
+    <li><a href="productos.html">Productos</a></li>
+    <li><a href="proveedores.html">Proveedores</a></li>
+    <li><a href="categorias.html">Categorías</a></li>
+    <li><a href="clientes.html">Clientes</a></li>
+    <li><a href="detalle_venta.html">Detalle de Venta</a></li>
+   
+    <li><a href="logout.php" class="cerrar">Cerrar sesión</a></li>  
+  </ul>
+</nav>
+
+
+  <h1>Detalle de Ventas</h1>
+
+  <table id="tablaDetalle">
+    <thead>
+      <tr>
+        <th>ID Detalle</th>
+        <th>ID Venta</th>
+        <th>Producto</th>
+        <th>Cantidad</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function cargarDetalleVentas() {
+      const res = await fetch('listar_detalle_venta.php');
+      const data = await res.json();
+      const tbody = document.querySelector('#tablaDetalle tbody');
+      tbody.innerHTML = '';
+
+      data.forEach(d => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${d.id_detventa}</td>
+            <td>${d.id_venta}</td>
+            <td>${d.producto}</td>
+            <td>${d.cantidad}</td>
+          </tr>
+        `;
+      });
+    }
+
+    cargarDetalleVentas();
+  </script>
+
+</body>
+</html>

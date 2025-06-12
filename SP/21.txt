@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Categorías</title>
+  <link rel="stylesheet" href="ventas.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      padding: 20px;
+    }
+
+    h1, h3 {
+      color: #333;
+    }
+
+    form, .categoria {
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    input {
+      width: 300px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .categoria {
+      border: 1px solid #ccc;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .alerta {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+
+    .alerta.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alerta.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Menú de navegación -->
+  <nav class="menu">
+  <ul>
+    <li><a href="productos.html">Productos</a></li>
+    <li><a href="proveedores.html">Proveedores</a></li>
+    <li><a href="categorias.html">Categorías</a></li>
+    <li><a href="clientes.html">Clientes</a></li>
+    <li><a href="detalle_venta.html">Detalle de Venta</a></li>
+   
+    <li><a href="logout.php" class="cerrar">Cerrar sesión</a></li>
+  </ul>
+</nav>
+
+
+  <h1>CRUD de Categorías</h1>
+
+  <div id="alerta" class="alerta"></div>
+
+  <h3>Crear / Actualizar Categoría</h3>
+  <form id="formCategoria">
+    <input type="hidden" id="id_categoria">
+    <input type="text" id="descripcion" placeholder="Descripción de la categoría" required>
+    <button type="submit">Guardar</button>
+  </form>
+
+  <h3>Lista de Categorías</h3>
+  <div id="categorias"></div>
+
+  <script>
+    function mostrarAlerta(mensaje, tipo = 'success') {
+      const alerta = document.getElementById('alerta');
+      alerta.textContent = mensaje;
+      alerta.className = `alerta ${tipo}`;
+      alerta.style.display = 'block';
+      setTimeout(() => alerta.style.display = 'none', 3000);
+    }
+
+    async function cargarCategorias() {
+      try {
+        const res = await fetch('listar_categorias.php');
+        const data = await res.json();
+        const contenedor = document.getElementById('categorias');
+        contenedor.innerHTML = '';
+        data.forEach(c => {
+          contenedor.innerHTML += `
+            <div class="categoria">
+              <strong>${c.descripcion}</strong><br>
+              <button onclick="editar(${c.id_categoria})">Editar</button>
+              <button onclick="eliminar(${c.id_categoria})">Eliminar</button>
+            </div>
+          `;
+        });
+      } catch (error) {
+        mostrarAlerta('Error al cargar categorías.', 'error');
+      }
+    }
+
+    document.getElementById('formCategoria').addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = document.getElementById('id_categoria').value;
+      const datos = new FormData();
+      datos.append('descripcion', document.getElementById('descripcion').value);
+
+      let url = 'crear_categoria.php';
+      let accion = 'creada';
+      if (id) {
+        datos.append('id_categoria', id);
+        url = 'actualizar_categoria.php';
+        accion = 'actualizada';
+      }
+
+      try {
+        const res = await fetch(url, { method: 'POST', body: datos });
+        if (res.ok) {
+          mostrarAlerta(`Categoría ${accion} correctamente.`);
+          e.target.reset();
+          document.getElementById('id_categoria').value = '';
+          cargarCategorias();
+        } else {
+          throw new Error();
+        }
+      } catch (error) {
+        mostrarAlerta(`Error al ${accion} categoría.`, 'error');
+      }
+    });
+
+    async function editar(id) {
+      try {
+        const res = await fetch('obtener_categoria.php?id=' + id);
+        const c = await res.json();
+        document.getElementById('id_categoria').value = c.id_categoria;
+        document.getElementById('descripcion').value = c.descripcion;
+      } catch {
+        mostrarAlerta('Error al obtener categoría.', 'error');
+      }
+    }
+
+    async function eliminar(id) {
+      if (confirm("¿Seguro que quieres eliminar esta categoría?")) {
+        try {
+          const res = await fetch('eliminar_categoria.php?id=' + id);
+          if (res.ok) {
+            mostrarAlerta('Categoría eliminada correctamente.');
+            cargarCategorias();
+          } else {
+            throw new Error();
+          }
+        } catch {
+          mostrarAlerta('Error al eliminar categoría.', 'error');
+        }
+      }
+    }
+
+    cargarCategorias();
+  </script>
+
+</body>
+</html>

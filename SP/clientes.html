@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Clientes</title><link rel="stylesheet" href="ventas.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      padding: 20px;
+    }
+
+    h1, h3 {
+      color: #333;
+    }
+
+    form, .cliente {
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    input {
+      width: 200px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .cliente {
+      border: 1px solid #ccc;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .alerta {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+
+    .alerta.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alerta.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body><nav class="menu">
+  <ul>
+    <li><a href="productos.html">Productos</a></li>
+    <li><a href="proveedores.html">Proveedores</a></li>
+    <li><a href="categorias.html">Categorías</a></li>
+    <li><a href="clientes.html">Clientes</a></li>
+    <li><a href="detalle_venta.html">Detalle de Venta</a></li>
+  
+    <li><a href="logout.php" class="cerrar">Cerrar sesión</a></li>
+  </ul>
+</nav>
+
+
+  <h1>CRUD de Clientes</h1>
+
+  <div id="alerta" class="alerta"></div>
+
+  <h3>Crear / Actualizar Cliente</h3>
+  <form id="formCliente">
+    <input type="hidden" id="id_cliente">
+    <input type="text" id="nombres" placeholder="Nombres" >
+    <input type="text" id="apellidos" placeholder="Apellidos">
+    <input type="text" id="direccion" placeholder="Dirección">
+    <input type="text" id="telefono" placeholder="Teléfono">
+    <button type="submit">Guardar</button>
+  </form>
+
+  <h3>Lista de Clientes</h3>
+  <div id="clientes"></div>
+
+  <script>
+    function mostrarAlerta(mensaje, tipo = 'success') {
+      const alerta = document.getElementById('alerta');
+      alerta.textContent = mensaje;
+      alerta.className = `alerta ${tipo}`;
+      alerta.style.display = 'block';
+      setTimeout(() => alerta.style.display = 'none', 3000);
+    }
+
+    async function cargarClientes() {
+      try {
+        const res = await fetch('listar.php');
+        const data = await res.json();
+        const contenedor = document.getElementById('clientes');
+        contenedor.innerHTML = '';
+        data.forEach(c => {
+          contenedor.innerHTML += `
+            <div class="cliente">
+              <strong>${c.nombres} ${c.apellidos}</strong><br>
+              Dirección: ${c.direccion}<br>
+              Teléfono: ${c.telefono}<br>
+              <button onclick="editar(${c.id_cliente})">Editar</button>
+              <button onclick="eliminar(${c.id_cliente})">Eliminar</button>
+            </div>
+          `;
+        });
+      } catch (error) {
+        mostrarAlerta('Error al cargar clientes.', 'error');
+      }
+    }
+
+    document.getElementById('formCliente').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('id_cliente').value;
+  const datos = new FormData();
+  datos.append('nombres', document.getElementById('nombres').value);
+  datos.append('apellidos', document.getElementById('apellidos').value);
+  datos.append('direccion', document.getElementById('direccion').value);
+  datos.append('telefono', document.getElementById('telefono').value);
+
+  let url = 'crear.php';
+  let accion = 'creado';
+  if (id) {
+    datos.append('id_cliente', id);
+    url = 'actualizar.php';
+    accion = 'actualizado';
+  }
+
+  try {
+    const res = await fetch(url, { method: 'POST', body: datos });
+    const json = await res.json();
+
+    if (json.success) {
+      mostrarAlerta(`Cliente ${accion} correctamente.`, 'success');
+      e.target.reset();
+      document.getElementById('id_cliente').value = '';
+      cargarClientes();
+    } else {
+      mostrarAlerta(json.message || `Error al ${accion} cliente.`, 'error');
+    }
+  } catch (err) {
+    mostrarAlerta(`Error inesperado: ${err.message}`, 'error');
+  }
+});
+async function editar(id) {
+  try {
+    const res = await fetch('obtener.php?id=' + id);
+    if (!res.ok) throw new Error('Error en la respuesta');
+    const c = await res.json();
+    document.getElementById('id_cliente').value = c.id_cliente;
+    document.getElementById('nombres').value = c.nombres;
+    document.getElementById('apellidos').value = c.apellidos;
+    document.getElementById('direccion').value = c.direccion;
+    document.getElementById('telefono').value = c.telefono;
+  } catch {
+    mostrarAlerta('Error al obtener cliente.', 'error');
+  }
+}
+    async function eliminar(id) {
+      if (confirm("¿Seguro que quieres eliminar este cliente?")) {
+        try {
+          const res = await fetch('eliminar.php?id=' + id);
+          if (res.ok) {
+            mostrarAlerta('Cliente eliminado correctamente.');
+            cargarClientes();
+          } else {
+            throw new Error();
+          }
+        } catch {
+          mostrarAlerta('Error al eliminar cliente.', 'error');
+        }
+      }
+    }
+
+    // Cargar lista al inicio
+    cargarClientes();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login</title>
+  <link rel="stylesheet" href="ventas.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .login-container {
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .error {
+      color: #721c24;
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <h2>Iniciar Sesión</h2>
+    <form id="formLogin">
+      <input type="email" id="email" placeholder="Correo electrónico"   />
+      <input type="password" id="password" placeholder="Contraseña"  />
+      <button type="submit">Entrar</button>
+    </form>
+    <div id="error" class="error"></div>
+  </div>
+
+  <script>
+    const formLogin = document.getElementById('formLogin');
+    const errorDiv = document.getElementById('error');
+
+    formLogin.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      // Limpiar error previo
+      errorDiv.textContent = '';
+      errorDiv.style.display = 'none';
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const datos = new FormData();
+      datos.append('email', email);
+      datos.append('password', password);
+
+      try {
+        const res = await fetch('login.php', { method: 'POST', body: datos });
+        const resultado = await res.json();
+
+   if (resultado.success) {
+  window.location.href = resultado.redirect;
+} else {
+  errorDiv.textContent = resultado.message;
+  errorDiv.style.display = 'block';
+
+  // Opcional: ocultar el mensaje después de 5 segundos
+  setTimeout(() => {
+    errorDiv.style.display = 'none';
+    errorDiv.textContent = '';
+  }, 5000);
+}
+      } catch {
+        errorDiv.textContent = "Error al iniciar sesión.";
+        errorDiv.style.display = 'block';
+      }
+    });
+  </script>
+
+</body>
+</html>
+

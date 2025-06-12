@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Proveedores</title><link rel="stylesheet" href="ventas.css">
+  <style>css
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      padding: 20px;
+    }
+
+    h1, h3 {
+      color: #333;
+    }
+
+    form, .proveedor {
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    input {
+      width: 200px;
+    }
+
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .proveedor {
+      border: 1px solid #ccc;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .alerta {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+
+    .alerta.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alerta.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+<nav class="menu">
+  <ul>
+    <li><a href="productos.html">Productos</a></li>
+    <li><a href="proveedores.html">Proveedores</a></li>
+    <li><a href="categorias.html">Categorías</a></li>
+    <li><a href="clientes.html">Clientes</a></li>
+    <li><a href="detalle_venta.html">Detalle de Venta</a></li>
+  
+    <li><a href="logout.php" class="cerrar">Cerrar sesión</a></li>
+  </ul>
+</nav>
+
+  <h1>CRUD de Proveedores</h1>
+
+  <div id="alerta" class="alerta"></div>
+
+  <h3>Crear / Actualizar Proveedor</h3>
+  <form id="formProveedor">
+    <input type="hidden" id="id_proveedor">
+    <input type="text" id="razonsocial" placeholder="Razón Social" >
+    <input type="text" id="direccion" placeholder="Dirección">
+    <input type="text" id="telefono" placeholder="Teléfono">
+    <button type="submit">Guardar</button>
+  </form>
+
+  <h3>Lista de Proveedores</h3>
+  <div id="proveedores"></div>
+
+  <script>
+  function mostrarAlerta(mensaje, tipo = 'success') {
+    const alerta = document.getElementById('alerta');
+    alerta.textContent = mensaje;
+    alerta.className = `alerta ${tipo}`;
+    alerta.style.display = 'block';
+    setTimeout(() => alerta.style.display = 'none', 3000);
+  }
+
+  async function cargarProveedores() {
+    try {
+      const res = await fetch('listar_proveedores.php');
+      const data = await res.json();
+      const contenedor = document.getElementById('proveedores');
+      contenedor.innerHTML = '';
+      data.forEach(p => {
+        contenedor.innerHTML += `
+          <div class="proveedor">
+            <strong>${p.razonsocial}</strong><br>
+            Dirección: ${p.direccion}<br>
+            Teléfono: ${p.telefono}<br>
+            <button onclick="editar(${p.id_proveedor})">Editar</button>
+            <button onclick="eliminar(${p.id_proveedor})">Eliminar</button>
+          </div>
+        `;
+      });
+    } catch (error) {
+      mostrarAlerta('Error al cargar proveedores.', 'error');
+    }
+  }
+
+  document.getElementById('formProveedor').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('id_proveedor').value;
+    const datos = new FormData();
+    datos.append('razonsocial', document.getElementById('razonsocial').value);
+    datos.append('direccion', document.getElementById('direccion').value);
+    datos.append('telefono', document.getElementById('telefono').value);
+
+    let url = 'crear_proveedor.php';
+    let accion = 'creado';
+    if (id) {
+      datos.append('id_proveedor', id);
+      url = 'actualizar_proveedor.php';
+      accion = 'actualizado';
+    }
+
+    try {
+      const res = await fetch(url, { method: 'POST', body: datos });
+      const json = await res.json();
+      if (json.success) {
+        mostrarAlerta(json.message, 'success');
+        e.target.reset();
+        document.getElementById('id_proveedor').value = '';
+        cargarProveedores();
+      } else {
+        mostrarAlerta(json.message || `Error al ${accion} proveedor.`, 'error');
+      }
+    } catch (error) {
+      mostrarAlerta(`Error inesperado: ${error.message}`, 'error');
+    }
+  });
+
+  async function editar(id) {
+    try {
+      const res = await fetch('obtener_proveedor.php?id=' + id);
+      if (!res.ok) throw new Error('Error al obtener proveedor');
+      const p = await res.json();
+      document.getElementById('id_proveedor').value = p.id_proveedor;
+      document.getElementById('razonsocial').value = p.razonsocial;
+      document.getElementById('direccion').value = p.direccion;
+      document.getElementById('telefono').value = p.telefono;
+    } catch {
+      mostrarAlerta('Error al obtener proveedor.', 'error');
+    }
+  }
+
+  async function eliminar(id) {
+    if (confirm("¿Seguro que quieres eliminar este proveedor?")) {
+      try {
+        const res = await fetch('eliminar_proveedor.php?id=' + id);
+        if (res.ok) {
+          mostrarAlerta('Proveedor eliminado correctamente.', 'success');
+          cargarProveedores();
+        } else {
+          throw new Error();
+        }
+      } catch {
+        mostrarAlerta('Error al eliminar proveedor.', 'error');
+      }
+    }
+  }
+
+  cargarProveedores();
+</script>
+
+
+</body>
+</html>

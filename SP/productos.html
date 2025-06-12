@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Productos</title>
+  <link rel="stylesheet" href="ventas.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      padding: 20px;
+    }
+
+    h1, h3 {
+      color: #333;
+    }
+
+    form, .producto {
+      margin-bottom: 20px;
+    }
+
+    input, select, button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    input, select {
+      width: 200px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .producto {
+      border: 1px solid #ccc;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .alerta {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+
+    .alerta.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alerta.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Menú de navegación -->
+ <nav class="menu">
+  <ul>
+    <li><a href="productos.html">Productos</a></li>
+    <li><a href="proveedores.html">Proveedores</a></li>
+    <li><a href="categorias.html">Categorías</a></li>
+    <li><a href="clientes.html">Clientes</a></li>
+    <li><a href="detalle_venta.html">Detalle de Venta</a></li>
+  
+    <li><a href="logout.php" class="cerrar">Cerrar sesión</a></li>
+  </ul>
+</nav>
+
+
+  <h1>CRUD de Productos</h1>
+
+  <div id="alerta" class="alerta"></div>
+
+  <h3>Crear / Actualizar Producto</h3>
+  <form id="formProducto">
+    <input type="hidden" id="id_producto">
+    <input type="text" id="descripcion" placeholder="Descripción" >
+    <input type="number" step="0.01" id="precio" placeholder="Precio" >
+    <input type="number" id="stock" placeholder="Stock" >
+    <select id="id_categoria" ></select>
+    <select id="id_proveedor" ></select>
+    <button type="submit">Guardar</button>
+  </form>
+
+  <h3>Lista de Productos</h3>
+  <div id="productos"></div>
+
+  <script>
+    function mostrarAlerta(mensaje, tipo = 'success') {
+      const alerta = document.getElementById('alerta');
+      alerta.textContent = mensaje;
+      alerta.className = `alerta ${tipo}`;
+      alerta.style.display = 'block';
+      setTimeout(() => alerta.style.display = 'none', 3000);
+    }
+
+    async function cargarProductos() {
+      try {
+        const res = await fetch('listar_productos.php');
+        const data = await res.json();
+        const contenedor = document.getElementById('productos');
+        contenedor.innerHTML = '';
+        data.forEach(p => {
+          contenedor.innerHTML += `
+            <div class="producto">
+              <strong>${p.descripcion}</strong><br>
+              Precio: $${p.precio} - Stock: ${p.stock}<br>
+              Categoría: ${p.categoria} - Proveedor: ${p.proveedor}<br>
+              <button onclick="editar(${p.id_producto})">Editar</button>
+              <button onclick="eliminar(${p.id_producto})">Eliminar</button>
+            </div>
+          `;
+        });
+      } catch {
+        mostrarAlerta('Error al cargar productos.', 'error');
+      }
+    }
+
+    async function cargarCategoriasYProveedores() {
+      const catSel = document.getElementById('id_categoria');
+      const provSel = document.getElementById('id_proveedor');
+
+      try {
+        const [resCat, resProv] = await Promise.all([
+          fetch('listar_categorias.php'),
+          fetch('listar_proveedores.php')
+        ]);
+
+        const categorias = await resCat.json();
+        const proveedores = await resProv.json();
+
+        catSel.innerHTML = '<option value="">Seleccione categoría</option>';
+        categorias.forEach(c => {
+          catSel.innerHTML += `<option value="${c.id_categoria}">${c.descripcion}</option>`;
+        });
+
+        provSel.innerHTML = '<option value="">Seleccione proveedor</option>';
+        proveedores.forEach(p => {
+          provSel.innerHTML += `<option value="${p.id_proveedor}">${p.razonsocial}</option>`;
+        });
+
+      } catch {
+        mostrarAlerta('Error al cargar categorías o proveedores.', 'error');
+      }
+    }
+
+    document.getElementById('formProducto').addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = document.getElementById('id_producto').value;
+      const datos = new FormData();
+      datos.append('descripcion', document.getElementById('descripcion').value);
+      datos.append('precio', document.getElementById('precio').value);
+      datos.append('stock', document.getElementById('stock').value);
+      datos.append('id_categoria', document.getElementById('id_categoria').value);
+      datos.append('id_proveedor', document.getElementById('id_proveedor').value);
+
+      let url = 'crear_producto.php';
+      let accion = 'creado';
+      if (id) {
+        datos.append('id_producto', id);
+        url = 'actualizar_producto.php';
+        accion = 'actualizado';
+      }
+
+    try {
+  const res = await fetch(url, { method: 'POST', body: datos });
+  const data = await res.json();
+
+  if (data.success) {
+    mostrarAlerta(data.message || `Producto ${accion} correctamente.`);
+    e.target.reset();
+    document.getElementById('id_producto').value = '';
+    cargarProductos();
+  } else {
+    mostrarAlerta(data.message || `Error al ${accion} producto.`, 'error');
+  }
+} catch {
+  mostrarAlerta(`Error al ${accion} producto.`, 'error');
+}
+    });
+
+    async function editar(id) {
+      try {
+        const res = await fetch('obtener_producto.php?id=' + id);
+        const p = await res.json();
+        document.getElementById('id_producto').value = p.id_producto;
+        document.getElementById('descripcion').value = p.descripcion;
+        document.getElementById('precio').value = p.precio;
+        document.getElementById('stock').value = p.stock;
+        document.getElementById('id_categoria').value = p.id_categoria;
+        document.getElementById('id_proveedor').value = p.id_proveedor;
+      } catch {
+        mostrarAlerta('Error al obtener producto.', 'error');
+      }
+    }
+
+    async function eliminar(id) {
+      if (confirm("¿Seguro que quieres eliminar este producto?")) {
+        try {
+          const res = await fetch('eliminar_producto.php?id=' + id);
+          if (res.ok) {
+            mostrarAlerta('Producto eliminado correctamente.');
+            cargarProductos();
+          } else {
+            throw new Error();
+          }
+        } catch {
+          mostrarAlerta('Error al eliminar producto.', 'error');
+        }
+      }
+    }
+
+    // Inicializar
+    cargarCategoriasYProveedores();
+    cargarProductos();
+  </script>
+
+</body>
+</html>
